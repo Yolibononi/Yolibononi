@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathe-GPT Profi Chat</title>
+    <meta name="description" content="Interaktiver Mathematik-Assistent für komplexe Berechnungen">
+    <meta name="theme-color" content="#0f0c29">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lobster&family=Inter:wght@400;500;600&display=swap');
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --accent-gradient: linear-gradient(135deg, #ff7f50, #ff4500);
+            --text-gradient: linear-gradient(90deg, #ff7f50, #ff4500, #1e90ff, #32cd32);
+            --glass-bg: rgba(0, 0, 0, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --user-msg-bg: linear-gradient(135deg, #4a4e69, #5a5f7a);
+            --bot-msg-bg: linear-gradient(135deg, #22223b, #32324b);
+            --loading-bg: linear-gradient(135deg, #2a2a4b, #3a3a5b);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-focus-bg: rgba(255, 255, 255, 0.08);
+            --scrollbar-thumb: rgba(255, 127, 80, 0.5);
+            --border-radius: 12px;
+            --border-radius-sm: 8px;
+            --spacing-xs: 5px;
+            --spacing-sm: 10px;
+            --spacing-md: 15px;
+            --spacing-lg: 20px;
+            --font-size-sm: 14px;
+            --font-size-base: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 28px;
+            --font-size-xxl: 36px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 12px rgba(255, 127, 80, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-gradient);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: var(--spacing-sm);
+            line-height: 1.6;
+        }
+
+        .chat-container {
+            width: min(700px, 100%);
+            height: min(90vh, 900px);
+            display: flex;
+            flex-direction: column;
+            background: var(--glass-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-lg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .chat-header {
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: clamp(var(--font-size-xl), 5vw, var(--font-size-xxl));
+            font-family: 'Lobster', cursive;
+            background: var(--text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 400;
+        }
+
+        #chatHistory {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius-sm);
+            background: var(--input-bg);
+            margin-bottom: var(--spacing-md);
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) transparent;
+        }
+
+        #chatHistory::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chatHistory::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chatHistory::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        #chatHistory::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 127, 80, 0.7);
+        }
+
+        .msg {
+            padding: 12px var(--spacing-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-sm);
+            word-break: break-word;
+            max-width: 85%;
+            line-height: 1.5;
+            animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            font-size: var(--font-size-base);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg.user {
+            background: var(--user-msg-bg);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .msg.bot {
+            background: var(--bot-msg-bg);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .msg.bot.loading {
+            background: var(--loading-bg);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.6;
+                transform: scale(0.98);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .input-container {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: stretch;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-container input {
+            width: 100%;
+            padding: 12px var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            border: 2px solid var(--glass-border);
+            font-size: var(--font-size-base);
+            background: var(--input-bg);
+            color: #fff;
+            outline: none;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .input-container input:focus {
+            border-color: #ff7f50;
+            background: var(--input-focus-bg);
+            box-shadow: 0 0 0 3px rgba(255, 127, 80, 0.1);
+        }
+
+        .input-container input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-container button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            background: var(--accent-gradient);
+            color: #fff;
+            cursor: pointer;
+            font-size: var(--font-size-base);
+            font-weight: 600;
+            transition: var(--transition);
+            white-space: nowrap;
+            font-family: inherit;
+            min-width: 80px;
+        }
+
+        .input-container button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .input-container button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-container button:focus-visible {
+            outline: 2px solid #ff7f50;
+            outline-offset: 2px;
+        }
+
+        /* Enhanced mobile responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-xs);
+            }
+            
+            .chat-container {
+                padding: var(--spacing-md);
+                height: 95vh;
+            }
+            
+            .msg {
+                max-width: 90%;
+                padding: var(--spacing-sm) 12px;
+            }
+            
+            .input-container {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+            }
+            
+            .input-container button {
+                padding: 12px;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-header h1 {
+                font-size: var(--font-size-xl);
+            }
+            
+            .msg {
+                font-size: var(--font-size-sm);
+            }
+            
+            .input-container input {
+                font-size: var(--font-size-base);
+            }
+        }
+
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Focus indicators */
+        *:focus-visible {
+            outline: 2px solid #ff7f50;
+            outline-offset: 2px;
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            #chatHistory {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .chat-container {
+                border: 2px solid #fff;
+            }
+            
+            .msg {
+                border: 1px solid rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        /* Loading spinner for better UX */
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ff7f50;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: var(--spacing-xs);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Math formatting */
+        .math-result {
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 127, 80, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Error styling */
+        .error-msg {
+            color: #ff6b6b;
+        }
+
+        .success-msg {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" role="main" aria-label="Mathe-GPT Chat-Interface">
+        <header class="chat-header">
+            <h1>Luca</h1>
+        </header>
+        
+        <div id="chatHistory" 
+             role="log" 
+             aria-live="polite" 
+             aria-label="Chat-Verlauf"
+             tabindex="0">
+        </div>
+        
+        <div class="input-container" role="form" aria-label="Nachricht senden">
+            <div class="input-wrapper">
+                <label for="chatInput" class="sr-only">Nachricht eingeben</label>
+                <input id="chatInput" 
+                       type="text" 
+                       placeholder="Stelle eine Mathe-Frage..." 
+                       aria-label="Mathe-Frage eingeben" 
+                       autocomplete="off"
+                       maxlength="500"
+                       spellcheck="false">
+            </div>
+            <button id="sendBtn" 
+                    type="button"
+                    aria-label="Nachricht senden"
+                    aria-describedby="send-btn-desc">
+                <span id="send-btn-desc" class="sr-only">Drücken Sie Enter oder klicken Sie hier, um Ihre Nachricht zu senden</span>
+                Senden
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js" 
+            integrity="sha512-2BNjWGx8sSQ8c7HjMKpQN4B2iABqdeZBD6ksUPUqkZpUSrR8/qjKlmJuL7Z8eDHjKjKh7JmqwHf/H7z2nBs7eA==" 
+            crossorigin="anonymous" 
+            referrerpolicy="no-referrer"></script>
+    
+    <script>
+        'use strict';
+
+        // Enhanced math.js configuration
+        math.config({
+            number: 'BigNumber',
+            precision: 256,
+            predictable: true
+        });
+
+        // DOM elements with error handling
+        const elements = {
+            chatHistory: document.getElementById('chatHistory'),
+            chatInput: document.getElementById('chatInput'),
+            sendBtn: document.getElementById('sendBtn')
+        };
+
+        // Verify all elements exist
+        Object.entries(elements).forEach(([key, element]) => {
+            if (!element) {
+                console.error(`Element ${key} not found`);
+            }
+        });
+
+        // Application state
+        const state = {
+            isProcessing: false,
+            messageCount: 0,
+            lastUserInput: '',
+            conversationHistory: []
+        };
+
+        // Performance optimization: Debounced scroll
+        const debouncedScroll = debounce(() => {
+            elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
+        }, 10);
+
+        // Utility function: Debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Enhanced message creation with better accessibility
+        function addMessage(text, sender, isLoading = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `msg ${sender}`;
+            messageDiv.setAttribute('role', 'article');
+            messageDiv.setAttribute('aria-label', `${sender === 'user' ? 'Benutzer' : 'Bot'} Nachricht`);
+            
+            if (isLoading) {
+                messageDiv.classList.add('loading');
+                messageDiv.innerHTML = `<span class="loading-spinner" aria-hidden="true"></span>${text}`;
+                messageDiv.setAttribute('aria-live', 'polite');
+            } else {
+                // Enhanced text formatting for math results
+                const formattedText = formatMathText(text);
+                messageDiv.innerHTML = formattedText;
+            }
+            
+            elements.chatHistory.appendChild(messageDiv);
+            state.messageCount++;
+            
+            // Store in conversation history
+            state.conversationHistory.push({
+                text: text,
+                sender: sender,
+                timestamp: Date.now()
+            });
+            
+            // Limit conversation history to prevent memory issues
+            if (state.conversationHistory.length > 100) {
+                state.conversationHistory = state.conversationHistory.slice(-50);
+            }
+            
+            debouncedScroll();
+            return messageDiv;
+        }
+
+        // Enhanced text formatting for better readability
+        function formatMathText(text) {
+            return text
+                .replace(/✅\s*\*\*Ergebnis:\*\*\s*(.+)/g, '✅ <strong>Ergebnis:</strong> <span class="math-result">$1</span>')
+                .replace(/❌(.+)/g, '<span class="error-msg">❌$1</span>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Enhanced conversational responses with more variety
+        const conversationalResponses = {
+            'hallo': ['Hallo! 👋 Ich bin dein Mathe-Assistent. Frag mich alles, was mit Zahlen zu tun hat.', 'Hi! Bereit für mathematische Abenteuer? 🧮'],
+            'hi': ['Hey! 😊 Bereit für Berechnungen?', 'Hallo! Was kann ich für dich rechnen? 🔢'],
+            'hey': ['Hey! Was kann ich für dich berechnen?', 'Hi! Lass uns zusammen rechnen! ✨'],
+            'guten tag': ['Guten Tag! Wie kann ich dir helfen?', 'Guten Tag! Bereit für Mathematik? 📊'],
+            'guten morgen': ['Guten Morgen! ☀️ Lass uns rechnen!', 'Morgen! Ein perfekter Tag für Mathe! 🌅'],
+            'guten abend': ['Guten Abend! 🌙 Bereit für Mathe?', 'Schönen Abend! Zeit für Berechnungen! 🌆'],
+            'danke': ['Gern geschehen! 👍', 'Immer gerne! 😊', 'Freut mich, helfen zu können! ✨'],
+            'vielen dank': ['Sehr gerne! Immer wieder.', 'Das war doch selbstverständlich! 🤗'],
+            'wie gehts': ['Mir geht es prima! 🤖 Ich bin bereit zu rechnen.', 'Ausgezeichnet! Zahlen sind mein Leben! 📈'],
+            'wie geht es dir': ['Ausgezeichnet! Zahlen machen mich glücklich. 😊', 'Fantastisch! Bereit für komplexe Berechnungen! 🚀'],
+            'tschüss': ['Auf Wiedersehen! Bis zum nächsten Mal! 👋', 'Tschüss! Komm bald wieder für mehr Mathe! 🔢'],
+            'bye': ['Tschüss! Komm bald wieder! 😊', 'Auf Wiedersehen! War schön zu rechnen! 👋'],
+            'hilfe': `📚 **Hilfe - Was ich kann:**
+
+• **Grundrechenarten:** 5 + 3, 10 * 2, 100 / 4
+• **Potenzen:** 2^8, 5 hoch 3, 2**10
+• **Wurzeln:** sqrt(64), wurzel aus 144, cbrt(27)
+• **Trigonometrie:** sin(45), cos(pi/4), tan(30)
+• **Logarithmen:** log(100), log(8, 2), ln(e)
+• **Fakultät:** 5! (= 120), 10!
+• **Konstanten:** pi, e, phi
+• **Einheiten:** 2 km in m, 5 kg in g, 100°C in °F
+• **Komplexe Formeln:** (2+3)*4^2-sqrt(16)
+• **Statistik:** mean([1,2,3]), median([1,2,3])
+
+**Beispiele:**
+- "Was ist 15% von 200?"
+- "Berechne die Hypotenuse von 3 und 4"
+- "Wie viel ist 2^10?"
+
+Probier's einfach aus! 🚀`,
+            'help': 'Gib "hilfe" ein für Informationen auf Deutsch.',
+            'was kannst du': 'Ich kann mathematische Berechnungen durchführen! Gib "hilfe" ein für alle Funktionen.',
+            'beispiele': 'Beispiele: "5 + 3", "wurzel aus 64", "sin(45)", "5!", "2 km in m". Gib "hilfe" für mehr!',
+        };
+
+        // Get random response for variety
+        function getResponse(key) {
+            const responses = conversationalResponses[key];
+            if (Array.isArray(responses)) {
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            return responses;
+        }
+
+        // Enhanced input preprocessing with more patterns
+        function preprocessInput(input) {
+            let processed = input
+                .replace(/^(bitte\s+|kannst\s+du\s+|könntest\s+du\s+|berechne\s+mir\s+)/gi, '')
+                .replace(/was\s+ist|berechne|rechne|wie\s+viel\s+ist|wie\s+groß\s+ist/gi, '');
+                
+            // Enhanced pattern matching
+            processed = processed
+                // Wurzel patterns
+                .replace(/wurzel\s+aus\s+(\d+(?:\.\d+)?)/gi, 'sqrt($1)')
+                .replace(/wurzel\s+(\d+(?:\.\d+)?)/gi, 'sqrt($1)')
+                .replace(/quadratwurzel\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'sqrt($1)')
+                .replace(/kubikwurzel\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'cbrt($1)')
+                
+                // Fakultät patterns
+                .replace(/fakultät\s+(?:von\s+)?(\d+)/gi, '$1!')
+                .replace(/(\d+)\s+fakultät/gi, '$1!')
+                
+                // Potenz patterns
+                .replace(/(\d+(?:\.\d+)?)\s+hoch\s+(\d+(?:\.\d+)?)/gi, '$1^$2')
+                .replace(/(\d+(?:\.\d+)?)\s+zur\s+(\d+(?:\.\d+)?)\s*\.\s*potenz/gi, '$1^$2')
+                .replace(/\bhoch\b/gi, '^')
+                
+                // Grundrechenarten
+                .replace(/\bmal\b/gi, '*')
+                .replace(/\bplus\b/gi, '+')
+                .replace(/\bminus\b/gi, '-')
+                .replace(/geteilt\s+durch/gi, '/')
+                .replace(/\bdurch\b/gi, '/')
+                
+                // Symbole
+                .replace(/×/g, '*')
+                .replace(/÷/g, '/')
+                .replace(/π/g, 'pi')
+                
+                // Trigonometrie
+                .replace(/sinus\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'sin($1)')
+                .replace(/cosinus\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'cos($1)')
+                .replace(/tangens\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'tan($1)')
+                .replace(/sin\s+(\d+(?:\.\d+)?)/gi, 'sin($1)')
+                .replace /cos\s+(\d+(?:\.\d+)?)/gi, 'cos($1)')
+                .replace(/tan\s+(\d+(?:\.\d+)?)/gi, 'tan($1)')
+                
+                // Logarithmen
+                .replace(/logarithmus\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'log($1)')
+                .replace(/natürlicher\s+logarithmus\s+(?:von\s+)?(\d+(?:\.\d+)?)/gi, 'ln($1)')
+                .replace(/log\s+(\d+(?:\.\d+)?)/gi, 'log($1)')
+                
+                // Prozent
+                .replace(/(\d+(?:\.\d+)?)\s*%\s+von\s+(\d+(?:\.\d+)?)/gi, '($1/100)*$2')
+                .replace(/(\d+(?:\.\d+)?)\s*prozent\s+von\s+(\d+(?:\.\d+)?)/gi, '($1/100)*$2')
+                
+                // Komma zu Punkt
+                .replace(/,(\d)/g, '.$1')
+                .trim();
+                
+            return processed;
+        }
+
+        // Enhanced response generation with better error handling
+        function generateResponse(input) {
+            const normalizedInput = input.toLowerCase().trim();
+
+            // Check for conversational responses
+            const response = getResponse(normalizedInput);
+            if (response) {
+                return response;
+            }
+
+            if (!normalizedInput) {
+                return '🤔 Du hast nichts eingegeben. Stell mir eine Mathe-Frage!';
+            }
+
+            const expression = preprocessInput(normalizedInput);
+
+            try {
+                if (!expression || expression.trim() === '') {
+                    return '🤔 Ich habe deine Frage nicht verstanden. Versuch es mit einer mathematischen Formel oder gib "hilfe" ein.';
+                }
+
+                // Enhanced math evaluation with better error handling
+                const result = math.evaluate(expression);
+                
+                if (result === undefined || result === null) {
+                    return '❌ Das Ergebnis ist undefiniert. Überprüfe deine Eingabe.';
+                }
+                
+                let formattedResult;
+                
+                // Better number formatting
+                if (result && typeof result === 'object' && result.units) {
+                    formattedResult = math.format(result, { notation: 'auto', precision: 15 });
+                } else if (typeof result === 'number' || (result && result.isBigNumber)) {
+                    // Handle very large or very small numbers
+                    const numValue = parseFloat(result.toString());
+                    if (Math.abs(numValue) > 1e12 || (Math.abs(numValue) < 1e-6 && numValue !== 0)) {
+                        formattedResult = math.format(result, { notation: 'exponential', precision: 6 });
+                    } else {
+                        formattedResult = math.format(result, { notation: 'auto', precision: 15 });
+                    }
+                } else {
+                    formattedResult = result.toString();
+                }
+                
+                return `✅ **Ergebnis:** ${formattedResult}`;
+
+            } catch (error) {
+                console.error('Math evaluation error:', error);
+                
+                const errorMsg = error.message.toLowerCase();
+                
+                // Enhanced error messages
+                if (errorMsg.includes('undefined symbol') || errorMsg.includes('unexpected')) {
+                    return '❌ Ich kenne diesen Befehl nicht. Gib "hilfe" ein, um zu sehen, was ich kann.';
+                } else if (errorMsg.includes('parenthesis') || errorMsg.includes('bracket')) {
+                    return '❌ Fehler: Überprüfe deine Klammern. Sie müssen paarweise geschlossen sein.';
+                } else if (errorMsg.includes('dimension') || errorMsg.includes('unit')) {
+                    return '❌ Fehler: Die Einheiten passen nicht zusammen.';
+                } else if (errorMsg.includes('division by zero')) {
+                    return '❌ Fehler: Division durch Null ist nicht erlaubt.';
+                } else if (errorMsg.includes('domain')) {
+                    return '❌ Fehler: Der Wert liegt außerhalb des gültigen Bereichs.';
+                } else {
+                    return '❌ Das konnte ich nicht berechnen. Überprüfe deine Eingabe oder gib "hilfe" ein.';
+                }
+            }
+        }
+
+        // Enhanced message sending with better UX
+        function sendMessage() {
+            const userText = elements.chatInput.value.trim();
+            
+            if (!userText || state.isProcessing) return;
+
+            // Prevent spam
+            if (userText === state.lastUserInput) {
+                addMessage('🤔 Du hast das gerade schon gefragt. Versuch etwas anderes!', 'bot');
+                return;
+            }
+
+            state.isProcessing = true;
+            state.lastUserInput = userText;
+            elements.sendBtn.disabled = true;
+            elements.sendBtn.textContent = 'Sende...';
+            
+            addMessage(userText, 'user');
+            elements.chatInput.value = '';
+
+            const loadingMsg = addMessage('💭 Denke nach...', 'bot', true);
+
+            // Simulate thinking time for better UX
+            const thinkingTime = 300 + Math.random() * 400;
+            
+            setTimeout(() => {
+                loadingMsg.remove();
+                const botReply = generateResponse(userText);
+                addMessage(botReply, 'bot');
+                
+                state.isProcessing = false;
+                elements.sendBtn.disabled = false;
+                elements.sendBtn.textContent = 'Senden';
+                elements.chatInput.focus();
+            }, thinkingTime);
+        }
+
+        // Enhanced keyboard handling
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey && !state.isProcessing) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Event listeners with error handling
+        try {
+            elements.sendBtn.addEventListener('click', sendMessage);
+            elements.chatInput.addEventListener('keydown', handleKeyPress);
+            
+            // Enhanced input validation
+            elements.chatInput.addEventListener('input', (event) => {
+                const value = event.target.value;
+                if (value.length > 500) {
+                    event.target.value = value.substring(0, 500);
+                }
+            });
+
+            // Accessibility: Allow navigation in chat history
+            elements.chatHistory.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    elements.chatInput.focus();
+                }
+            });
+
+        } catch (error) {
+            console.error('Error setting up event listeners:', error);
+        }
+
+        // Initialize application
+        function initializeApp() {
+            try {
+                // Welcome message
+                addMessage('🤖 **Mathe-GPT ist bereit!** Stelle mir eine Frage oder gib einen Ausdruck ein.\n\nTippe "hilfe" für Beispiele und alle Funktionen. 🚀', 'bot');
+                elements.chatInput.focus();
+                
+                // Performance monitoring
+                if ('performance' in window) {
+                    console.log('App initialized in', performance.now().toFixed(2), 'ms');
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                addMessage('❌ Es gab einen Fehler beim Starten. Bitte lade die Seite neu.', 'bot');
+            }
+        }
+
+        // Start the application
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Error handling for unhandled errors
+        window.addEventListener('error', (event) => {
+            console.error('Unhandled error:', event.error);
+        });
+
+        // Service Worker registration for offline capability (optional enhancement)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Could register a service worker here for offline functionality
+            });
+        }
+    </script>
+</body>
+</html>
